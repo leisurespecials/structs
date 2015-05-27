@@ -1,7 +1,10 @@
 // Package structs contains various utilities functions to work with structs.
 package structs
 
-import "reflect"
+import (
+	"fmt"
+	"reflect"
+)
 
 var (
 	// DefaultTagName is the default tag name for struct fields which provides
@@ -70,6 +73,7 @@ func (s *Struct) Map() map[string]interface{} {
 	for _, field := range fields {
 		name := field.Name
 		val := s.value.FieldByName(name)
+		done := false
 
 		var finalVal interface{}
 
@@ -89,13 +93,30 @@ func (s *Struct) Map() map[string]interface{} {
 			}
 		}
 
-		if IsStruct(val.Interface()) && !tagOpts.Has("omitnested") {
+		if !done && IsSliceOfStructs(val.Interface()) && !tagOpts.Has("omitnested") {
+			fmt.Println("------- Found struct slice -----------", val.Len(), val, s.TagName, name)
+			newSlice := make([]map[string]interface{}, val.Len())
+			fmt.Println(newSlice)
+			for i := 0; i < val.Len(); i++ {
+				n := New(val.Index(i).Interface())
+				n.TagName = s.TagName
+				newSlice[i] = n.Map()
+			}
+			fmt.Println(newSlice)
+			finalVal = newSlice
+			done = true
+		}
+
+		if !done && IsStruct(val.Interface()) && !tagOpts.Has("omitnested") {
 			// look out for embedded structs, and convert them to a
 			// map[string]interface{} too
 			n := New(val.Interface())
 			n.TagName = s.TagName
 			finalVal = n.Map()
-		} else {
+			done = true
+		}
+
+		if !done {
 			finalVal = val.Interface()
 		}
 
@@ -440,6 +461,20 @@ func IsStruct(s interface{}) bool {
 	}
 
 	return v.Kind() == reflect.Struct
+}
+
+func IsSliceOfStructs(s interface{}) bool {
+	v := reflect.ValueOf(s)
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
+
+	// uninitialized zero value of a struct
+	if v.Kind() == reflect.Invalid {
+		return false
+	}
+
+	return v.Kind() == reflect.Slice && v.Type().Elem().Kind() == reflect.Struct
 }
 
 // Name returns the structs's type name within its package. It returns an
