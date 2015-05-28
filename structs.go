@@ -1,10 +1,7 @@
 // Package structs contains various utilities functions to work with structs.
 package structs
 
-import (
-	"fmt"
-	"reflect"
-)
+import "reflect"
 
 var (
 	// DefaultTagName is the default tag name for struct fields which provides
@@ -94,15 +91,12 @@ func (s *Struct) Map() map[string]interface{} {
 		}
 
 		if !done && IsSliceOfStructs(val.Interface()) && !tagOpts.Has("omitnested") {
-			fmt.Println("------- Found struct slice -----------", val.Len(), val, s.TagName, name)
 			newSlice := make([]map[string]interface{}, val.Len())
-			fmt.Println(newSlice)
 			for i := 0; i < val.Len(); i++ {
 				n := New(val.Index(i).Interface())
 				n.TagName = s.TagName
 				newSlice[i] = n.Map()
 			}
-			fmt.Println(newSlice)
 			finalVal = newSlice
 			done = true
 		}
