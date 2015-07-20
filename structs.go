@@ -468,7 +468,7 @@ func IsSliceOfStructs(s interface{}) bool {
 		return false
 	}
 
-	return v.Kind() == reflect.Slice && v.Type().Elem().Kind() == reflect.Struct
+	return (v.Kind() == reflect.Slice || v.Kind() == reflect.Array) && v.Type().Elem().Kind() == reflect.Struct
 }
 
 // Name returns the structs's type name within its package. It returns an
