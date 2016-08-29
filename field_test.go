@@ -81,7 +81,7 @@ func TestField_Set(t *testing.T) {
 	}
 
 	if f.Value().(bool) {
-		t.Errorf("Setted value is wrong: %s want: %s", f.Value().(bool), false)
+		t.Errorf("Setted value is wrong: %t want: %t", f.Value().(bool), false)
 	}
 
 	// let's pass a different type
@@ -130,6 +130,79 @@ func TestField_Set(t *testing.T) {
 
 	if ba.A != "helloWorld" {
 		t.Errorf("could not set baz. Got: %s Want: helloWorld", ba.A)
+	}
+}
+
+func TestField_NotSettable(t *testing.T) {
+	a := map[int]Baz{
+		4: Baz{
+			A: "value",
+		},
+	}
+
+	s := New(a[4])
+
+	if err := s.Field("A").Set("newValue"); err != errNotSettable {
+		t.Errorf("Trying to set non-settable field should error with %q. Got %q instead.", errNotSettable, err)
+	}
+}
+
+func TestField_Zero(t *testing.T) {
+	s := newStruct()
+
+	f := s.Field("A")
+	err := f.Zero()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if f.Value().(string) != "" {
+		t.Errorf("Zeroed value is wrong: %s want: %s", f.Value().(string), "")
+	}
+
+	f = s.Field("Y")
+	err = f.Zero()
+	if err != nil {
+		t.Error(err)
+	}
+
+	sliceLen := len(f.Value().([]string))
+	if sliceLen != 0 {
+		t.Errorf("Zeroed values slice length is wrong: %d, want: %d", sliceLen, 0)
+	}
+
+	f = s.Field("C")
+	err = f.Zero()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if f.Value().(bool) {
+		t.Errorf("Zeroed value is wrong: %t want: %t", f.Value().(bool), false)
+	}
+
+	// let's access an unexported field, which should give an error
+	f = s.Field("d")
+	err = f.Zero()
+	if err != errNotExported {
+		t.Error(err)
+	}
+
+	f = s.Field("Bar")
+	err = f.Zero()
+	if err != nil {
+		t.Error(err)
+	}
+
+	f = s.Field("E")
+	err = f.Zero()
+	if err != nil {
+		t.Error(err)
+	}
+
+	v := s.Field("E").value
+	if !v.IsNil() {
+		t.Errorf("could not set baz. Got: %s Want: <nil>", v.Interface())
 	}
 }
 
