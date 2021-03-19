@@ -160,4 +160,4 @@ for _, f := range s.Fields() {
 
 ## License
 
-The MIT License (MIT) - see LICENSE.md for more details
+The MIT License (MIT) - see LICENSE file for more details
