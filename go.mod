@@ -1,3 +1,3 @@
-module github.com/toowoxx/go-structs
+module github.com/leisurespecials/structs
 
 go 1.18
