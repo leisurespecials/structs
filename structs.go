@@ -425,10 +425,10 @@ func (s *Struct) Name() string {
 // structFields returns the exported struct fields for a given s struct. This
 // is a convenient helper method to avoid duplicate code in some of the
 // functions.
-func (s *Struct) structFields() []reflect.StructField {
+func (s *Struct) structFields() []*reflect.StructField {
 	t := s.value.Type()
 
-	var f []reflect.StructField
+	var f []*reflect.StructField
 
 	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
@@ -442,7 +442,7 @@ func (s *Struct) structFields() []reflect.StructField {
 			continue
 		}
 
-		f = append(f, field)
+		f = append(f, &field)
 	}
 
 	return f
