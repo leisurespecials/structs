@@ -3,6 +3,7 @@ package structs
 
 import (
 	"fmt"
+	"math"
 
 	"reflect"
 )
@@ -20,15 +21,19 @@ type Struct struct {
 	raw     interface{}
 	value   reflect.Value
 	TagName string
+
+	// Limits the max recursion of Map()
+	MaxRecursion int
 }
 
 // New returns a new *Struct with the struct s. It panics if the s's kind is
 // not struct.
 func New(s interface{}) *Struct {
 	return &Struct{
-		raw:     s,
-		value:   strctVal(s),
-		TagName: DefaultTagName,
+		raw:          s,
+		value:        strctVal(s),
+		TagName:      DefaultTagName,
+		MaxRecursion: math.MaxInt,
 	}
 }
 
@@ -117,7 +122,7 @@ func (s *Struct) FillMap(out map[string]interface{}) {
 		}
 
 		if !tagOpts.Has("omitnested") {
-			finalVal = s.nested(val)
+			finalVal = s.nested(val, s.MaxRecursion)
 
 			v := reflect.ValueOf(val.Interface())
 			if v.Kind() == reflect.Ptr {
@@ -134,6 +139,7 @@ func (s *Struct) FillMap(out map[string]interface{}) {
 				for i := 0; i < val.Len(); i++ {
 					n := New(val.Index(i).Interface())
 					n.TagName = s.TagName
+					n.MaxRecursion = s.MaxRecursion - 1
 					newSlice[i] = n.Map()
 				}
 				finalVal = newSlice
@@ -145,6 +151,7 @@ func (s *Struct) FillMap(out map[string]interface{}) {
 				// map[string]interface{} too
 				n := New(val.Interface())
 				n.TagName = s.TagName
+				n.MaxRecursion = s.MaxRecursion - 1
 				finalVal = n.Map()
 				done = true
 			}
@@ -543,12 +550,16 @@ func Name(s interface{}) string {
 
 // nested retrieves recursively all types for the given value and returns the
 // nested value.
-func (s *Struct) nested(val reflect.Value) interface{} {
+func (s *Struct) nested(val reflect.Value, maxDepth int) interface{} {
 	var finalVal interface{}
 
 	v := reflect.ValueOf(val.Interface())
 	if v.Kind() == reflect.Ptr {
 		v = v.Elem()
+	}
+
+	if maxDepth <= 0 {
+		return v.Interface()
 	}
 
 	switch v.Kind() {
@@ -583,7 +594,7 @@ func (s *Struct) nested(val reflect.Value) interface{} {
 				mapElem.Elem().Kind() == reflect.Struct) {
 			m := make(map[string]interface{}, val.Len())
 			for _, k := range val.MapKeys() {
-				m[k.String()] = s.nested(val.MapIndex(k))
+				m[k.String()] = s.nested(val.MapIndex(k), maxDepth-1)
 			}
 			finalVal = m
 			break
@@ -610,7 +621,7 @@ func (s *Struct) nested(val reflect.Value) interface{} {
 
 		slices := make([]interface{}, val.Len())
 		for x := 0; x < val.Len(); x++ {
-			slices[x] = s.nested(val.Index(x))
+			slices[x] = s.nested(val.Index(x), maxDepth-1)
 		}
 		finalVal = slices
 	default:
